@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    env:
+      TOKENIZERS_PARALLELISM: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.28"
+          enable-cache: true
+      - name: Install Python 3.12 and dependencies
+        run: |
+          uv python install 3.12
+          uv sync --frozen
+      - name: Lint
+        run: |
+          uv run ruff check src app tests
+          uv run ruff format --check src app tests
+      - name: Types
+        run: uv run mypy src app
+      - name: Tests (fixture only, no download, no LLM)
+        run: uv run pytest -m "not slow"

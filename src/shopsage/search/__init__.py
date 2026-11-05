@@ -1,0 +1,1 @@
+"""ShopSage search package."""

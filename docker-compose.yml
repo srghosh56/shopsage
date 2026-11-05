@@ -1,0 +1,30 @@
+# Run after `make data train eval` on the host (the containers mount the results).
+# The LLM runs outside the containers (e.g. Ollama on the host).
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    env_file: .env
+    environment:
+      # inside a container, "localhost" is the container itself; reach the host's LLM server
+      LLM_BASE_URL: ${DOCKER_LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data/processed:/app/data/processed:ro
+      - ./artifacts:/app/artifacts
+      - ./.cache/huggingface:/app/.cache/huggingface
+    ports:
+      - "${API_PORT:-8000}:8000"
+  ui:
+    build:
+      context: .
+      dockerfile: docker/ui.Dockerfile
+    environment:
+      API_URL: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${UI_PORT:-8501}:8501"
